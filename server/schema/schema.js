@@ -1,7 +1,7 @@
 const Project = require('../models/Project');
 const Client = require('../models/Client');
 
-const { GraphQLObjectType, GraphQLID, GraphQLString, GraphQLList, GraphQLSchema, GraphQLNonNull } = require('graphql');
+const { GraphQLObjectType, GraphQLID, GraphQLString, GraphQLList, GraphQLEnumType, GraphQLSchema, GraphQLNonNull } = require('graphql');
 
 const ProjectType = new GraphQLObjectType({
   name: "Project",
@@ -87,6 +87,74 @@ const mutation = new GraphQLObjectType({
       },
       resolve(parent, args) {
         return Client.findByIdAndRemove(args.id);
+      }
+    },
+    addProject: {
+      type: ProjectType,
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        description: { type: GraphQLNonNull(GraphQLString) },
+        status: {
+          type: new GraphQLEnumType({
+            name: 'ProjectStatus',
+            values: {
+              new: { value: 'Not started' },
+              progress: { value: 'In progress' },
+              completed: { value: 'Completed' }
+            }
+          }),
+          defaultValue: 'Not started'
+        },
+        clientId: { type: GraphQLNonNull(GraphQLID) }
+      },
+      resolve(parent, args) {
+        const project = new Project({
+          name: args.name,
+          description: args.description,
+          status: args.status,
+          clientId: args.clientId
+        });
+        return project.save();
+      }
+    },
+    deleteProject: {
+      type: ProjectType,
+      args: { 
+        id: { type: GraphQLNonNull(GraphQLID) }
+       },
+      resolve(parent, args) {
+        return Project.findByIdAndRemove(args.id);
+      }
+    },
+    updateProject: {
+      type: ProjectType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLString },
+        description: { type: GraphQLString },
+        status: {
+          type: new GraphQLEnumType({
+            name: 'ProjectStatusUpdate',
+            values: {
+              new: { value: 'Not started' },
+              progress: { value: 'In progress' },
+              completed: { value: 'Completed' }
+            }
+          }),
+        }
+      },
+      resolve(parent, args) {
+        return Project.findByIdAndUpdate(
+          args.id,
+          {
+            $set: {
+              name: args.name,
+              description: args.description,
+              status: args.status
+            }
+          },
+          { new: true }
+        );
       }
     }
   }
